@@ -1,0 +1,218 @@
+﻿@model OnboardingProj.Models.StoreViewModel
+
+<script src="~/Scripts/jquery-3.3.1.js"></script>
+<script src="~/Scripts/bootstrap.min.js"></script>
+<link href="~/Content/bootstrap.min.css" rel="stylesheet" />
+<script src="~/Scripts/knockout-3.4.2.js"></script>
+<script src="~/Scripts/knockout.validation.js"></script>
+
+
+<h2>Stores</h2>
+
+<div class="container">
+    <a href="#" class="btn btn-info" onclick="AddNewStore(0)">Add New Store</a> <br /><br />
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>Action(Edit)</th>
+                <th>Action(Delete)</th>
+
+            </tr>
+        </thead>
+        <tbody id="SetStoreList">
+            <tr id="LoadingStatus" style="color:red"></tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="modal fade" id="MyModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="ModalTitle"></h4>
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+                <form id="form">
+                    <fieldset id="SubmitForm">
+                        @Html.HiddenFor(m => m.StoreId, new { @id = "StoreId" })
+                        <div class="form-group">
+                            @*@Html.TextBoxFor(m => m.StoreName, new { @id = "StoreName", @class = "form-control", @placeholder = "Name*", required="true", data_required_message = "Please insert store name" })*@
+                            <input type="text" id="StoreName" class="form-control" data-bind="value:StoreName" placeholder="Store Name" name="StoreName"/>
+                        </div>
+                        <div class="form-group">
+                            @*@Html.TextBoxFor(m => m.StoreAddress, new { @id = "StoreAddress", @class = "form-control", @placeholder = "Address*" })*@
+                            <input type="text" id="StoreAddress" class="form-control" data-bind="value:StoreAddress" placeholder="Store Address" name="StoreAddress" />
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="SaveStoreRecord">Save</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="DeleteConfirmation">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Delete Store Record</h4>
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+                <p>Are You Sure You Want To Delete This Record?</p>
+            </div>
+            <div class="modal-footer">
+                <a href="#" class="btn btn-primary" onclick="ConfirmDelete()">Confirm</a>
+                <a href="#" class="btn btn-secondary" data-dismiss="modal" id="r">Cancel</a>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $("#LoadingStatus").html("Loading....");
+    $.get("/Store/GetStoreList", null, DataBind);
+    function DataBind(StoreList) {
+        //This Code For Receive All Data From Controller And Show It In Client Side
+        var SetData = $("#SetStoreList");
+        for (var i = 0; i < StoreList.length; i++) {
+            var Data = "<tr class='row_" + StoreList[i].Id + "'>" +
+                "<td>" + StoreList[i].StoreName + "</td>" +
+                "<td>" + StoreList[i].StoreAddress + "</td>" +
+                "<td>" + "<a href='#' class='btn btn-warning' onclick='EditStoreRecord(" + StoreList[i].StoreId + ")' ><span class='glyphicon glyphicon-edit'>Edit</span></a>" + "</td>" +
+                "<td>" + "<a href='#' class='btn btn-danger' onclick='DeleteStoreRecord(" + StoreList[i].StoreId + ")'><span class='glyphicon glyphicon-trash'>Delete</span></a>" + "</td>" +
+                "</tr>";
+            SetData.append(Data);
+            $("#LoadingStatus").html(" ");
+
+        }
+    }
+
+    //Show The Popup Modal For Add New Store
+
+    function AddNewStore(StoreId) {
+        $("#form")[0].reset();
+        $("#StoreId").val(0);
+        $("#ModalTitle").html("Add New Store");
+        $("#MyModal").modal();
+
+    }
+
+    //Show The Popup Modal For Edit Store Record
+
+    function EditStoreRecord(StoreId) {
+        var url = "/Store/GetStoreById?StoreId=" + StoreId;
+        $("#ModalTitle").html("Edit Store Record");
+        $("#MyModal").modal();
+        $.ajax({
+            type: "GET",
+            url: url,
+            success: function (data) {
+                var obj = JSON.parse(data);
+                $("#StoreId").val(obj.Id);
+                $("#StoreName").val(obj.Name);
+                $("#StoreAddress").val(obj.Address);
+
+            }
+        })
+    }
+
+    $("#SaveStoreRecord").click(function () {
+        var data = $("#SubmitForm").serialize();
+        
+        if ($("#StoreName").val() == "" || $("#StoreName").val() == "") {
+            alert("The Store Name and Address fields must not be empty!");
+        }
+        else {
+            $.ajax({
+                type: "Post",
+                url: "/Store/SaveDataInDatabase",
+                data: data,
+                success: function (result) {
+                    //alert("Success!..");
+                    window.location.href = "/Store/index";
+                    $("#MyModal").modal("hide");
+
+                }
+            })
+        }
+        
+    })
+
+    //Show The Popup Modal For DeleteComfirmation
+    var DeleteStoreRecord = function (StoreId) {
+        $("#StoreId").val(StoreId);
+        $("#DeleteConfirmation").modal("show");
+    }
+    var ConfirmDelete = function () {
+        var StoreId = $("#StoreId").val();
+        $.ajax({
+            type: "POST",
+            url: "/Store/DeleteStoreRecord?StoreId=" + StoreId,
+            success: function (result) {
+                window.location.href = "/Store/index";
+                $("#DeleteConfirmation").modal("hide");
+                $(".row_" + StoreId).remove();
+            }
+        })
+    }
+</script>
+
+<script type="text/javascript">
+
+    $(document).ready(function () {
+
+
+
+        ko.validation.init({
+
+            registerExtenders: true,
+            messagesOnModified: true,
+            insertMessages: true,
+            parseInputAttributes: true,
+            errorClass: 'errorStyle',
+            messageTemplate: null
+
+        }, true);
+
+        var viewModel = {
+
+            //var self = this;
+
+            StoreName: ko.observable().extend({ required: true, minLength: 2, maxLength: 17 }),
+            StoreAddress: ko.observable().extend({ required: true, minLength: 2, maxLength: 17 }),
+
+            submit: function () {
+                $('div.alert-success').hide();
+                $('div.alert-danger').hide();
+                if (viewModel.errors().length === 0) {
+                    //alert('Thank you');
+                    $('div.alert-success').show();
+                } else {
+                    //alert('Please check your submission');
+                    $('div.alert-danger').show();
+                }
+
+            }
+
+
+        };
+
+        //Catch errors
+        viewModel.errors = ko.validation.group(viewModel);
+        ko.applyBindings(viewModel);
+
+
+    });
+
+
+</script>

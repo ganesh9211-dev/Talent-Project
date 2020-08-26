@@ -1,0 +1,243 @@
+﻿@model OnboardingProj.Models.SalesViewModel
+
+<script src="~/Scripts/jquery-3.3.1.js"></script>
+<script src="~/Scripts/bootstrap.min.js"></script>
+<link href="~/Content/bootstrap.min.css" rel="stylesheet" />
+<script src="~/Scripts/knockout-3.4.2.js"></script>
+<script src="~/Scripts/knockout.validation.js"></script>
+
+<h2>Sales</h2>
+
+<div class="container">
+    <a href="#" class="btn btn-info" onclick="AddNewSale(0)">Add New Sale</a> <br /><br />
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>SaleId</th>
+                <th>Customer Name</th>
+                <th>Product Name</th>
+                <th>Store Name</th>
+                <th>Date Sold</th>
+                <th>Action(Edit)</th>
+                <th>Action(Delete)</th>
+
+            </tr>
+        </thead>
+        <tbody id="SetSalesList">
+            <tr id="LoadingStatus" style="color:red"></tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="modal fade" id="MyModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="ModalTitle"></h4>
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+                <form id="form">
+                    @* Group Input Forms Together *@
+                    <fieldset id="SubmitForm">
+                        @Html.HiddenFor(m => m.SaleId, new { @id = "SaleId" })
+                        <div class="form-group">
+                            @Html.DropDownListFor(m => m.SaleCustomerId, ViewBag.ListOfCustomers as SelectList, "--Select Customer--", new { @id = "DropDwnCust", @class = "form-control", data_bind = "value:CustList" })
+                        </div>
+                        <div class="form-group">
+                            @Html.DropDownListFor(m => m.SaleProductId, ViewBag.ListOfProducts as SelectList, "--Select Product--", new { @id = "DropDwnProd", @class = "form-control", data_bind = "value:ProdList" })
+                        </div>
+                        <div class="form-group">
+                            @Html.DropDownListFor(m => m.SaleStoreId, ViewBag.ListOfStores as SelectList, "--Select Store--", new { @id = "DropDwnStore", @class = "form-control", data_bind = "value:StoreList" })
+                        </div>
+                        <div class="form-group">
+                            @*@Html.TextBoxFor(m => m.SaleDateSold, new { @id = "Date", @class = "form-control", @placeholder = "Date Sold*" })*@
+                            <input type="text" id="Date" class="form-control" data-bind="value:DateSold" placeholder="Date Sold" name="SaleDateSold" />
+                        </div>
+
+                    </fieldset>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="SaveSaleRecord" >Save</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="DeleteConfirmation">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+                <h4>Delete Sale Record</h4>
+            </div>
+            <div class="modal-body">
+                <p>Are You Sure You Want To Delete This Record?</p>
+            </div>
+            <div class="modal-footer">
+                <a href="#" class="btn btn-primary" onclick="ConfirmDelete()">Confirm</a>
+                <a href="#" class="btn btn-secondary" data-dismiss="modal" id="r">Cancel</a>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $("#LoadingStatus").html("Loading....");
+    $.get("/Sales/GetSalesList", null, DataBind);
+    function DataBind(SalesList) {
+        //This Code For Receive All Data From Controller And Show It In Client Side
+        var SetData = $("#SetSalesList");
+        for (var i = 0; i < SalesList.length; i++) {
+            var Data = "<tr class='row_" + SalesList[i].SaleId + "'>" +
+                "<td>" + SalesList[i].SaleId + "</td>" +
+                "<td>" + SalesList[i].SaleCustomerName + "</td>" +
+                "<td>" + SalesList[i].SaleProductName + "</td>" +
+                "<td>" + SalesList[i].SaleStoreName + "</td>" +
+                "<td>" + SalesList[i].SaleDateSold + "</td>" +
+                "<td>" + "<a href='#' class='btn btn-warning' onclick='EditSaleRecord(" + SalesList[i].SaleId + ")' ><span class='glyphicon glyphicon-edit'>Edit</span></a>" + "</td>" +
+                "<td>" + "<a href='#' class='btn btn-danger' onclick='DeleteSaleRecord(" + SalesList[i].SaleId + ")'><span class='glyphicon glyphicon-trash'>Delete</span></a>" + "</td>" +
+                "</tr>";
+            SetData.append(Data);
+            $("#LoadingStatus").html(" ");
+
+        }
+    }
+
+    //Show The Popup Modal For Add New Sale
+
+    function AddNewSale(SaleId) {
+        $("#form")[0].reset();
+        $("#SaleId").val(0);
+        $("#ModalTitle").html("Add New Sale");
+        $("#MyModal").modal();
+
+    }
+
+    //Show The Popup Modal For Edit Sale Record
+
+    function EditSaleRecord(SaleId) {
+        var url = "/Sales/GetSaleById?SaleId=" + SaleId;
+        $("#ModalTitle").html("Edit Sale Record");
+        $("#MyModal").modal();
+        $.ajax({
+            type: "GET",
+            url: url,
+            success: function (data) {
+                var obj = JSON.parse(data);
+                $("#SaleId").val(obj.Id);
+
+                $("#DropDwnCust option:selected").text(obj.Customer.Name);
+                $("#DropDwnCust option:selected").val(obj.CustomerId);
+
+                $("#DropDwnProd option:selected").text(obj.Product.Name);
+                $("#DropDwnProd option:selected").val(obj.ProductId);
+
+                $("#DropDwnStore option:selected").text(obj.Store.Name);
+                $("#DropDwnStore option:selected").val(obj.StoreId);
+
+                $("#Date").val(obj.DateSold);
+
+            }
+        })
+    }
+
+    $("#SaveSaleRecord").click(function () {
+        var data = $("#SubmitForm").serialize();
+        alert(data);
+        $.ajax({
+            type: "Post",
+            url: "/Sales/SaveDataInDatabase",
+            data: data,
+            success: function (result) {
+                //alert("Success!..");
+                window.location.href = "/Sales/index";
+                $("#MyModal").modal("hide");
+
+            }
+        })
+    })
+
+    //Show The Popup Modal For DeleteConfirmation
+    var DeleteSaleRecord = function (SaleId) {
+        $("#SaleId").val(SaleId);
+        $("#DeleteConfirmation").modal("show");
+    }
+    var ConfirmDelete = function () {
+        var SaleId = $("#SaleId").val();
+        $.ajax({
+            type: "POST",
+            url: "/Sales/DeleteSaleRecord?SaleId=" + SaleId,
+            success: function (result) {
+                window.location.href = "/Sales/index";
+                $("#DeleteConfirmation").modal("hide");
+                $(".row_" + SaleId).remove();
+            }
+        })
+    }
+</script>
+
+<script type="text/javascript">
+
+    $(document).ready(function () {
+
+        ko.validation.init({
+
+            registerExtenders: true,
+            messagesOnModified: true,
+            insertMessages: true,
+            parseInputAttributes: true,
+            errorClass: 'errorStyle',
+            messageTemplate: null
+
+        }, true);
+
+        var viewModel = {
+
+            CustList: ko.observable().extend({
+                required: true,
+            }),
+
+            ProdList: ko.observable().extend({
+                required: true,
+            }),
+
+            StoreList: ko.observable().extend({
+                required: true,
+            }),
+
+            DateSold: ko.observable().extend({
+                required: true,
+                pattern: {
+                    message: 'Date must be in form dd/MM/YYYY',
+                    params: '[0-9]{2}\/[0-9]{2}\/[0-9]{4}'
+                }
+            }),
+            submit: function () {
+                $('div.alert-success').hide();
+                $('div.alert-danger').hide();
+                if (viewModel.errors().length === 0) {
+                    //alert('Thank you');
+                    $('div.alert-success').show();
+                } else {
+                    //alert('Please check your submission');
+                    $('div.alert-danger').show();
+                }
+
+            },
+            
+        };
+
+        //Catch errors
+        viewModel.errors = ko.validation.group(viewModel);
+        ko.applyBindings(viewModel);
+
+    });
+
+
+</script>
